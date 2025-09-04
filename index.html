@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Detector de Emociones</title>
+  <style>
+    :root{
+      --bg: #f2f4f7;         /* fondo neutro */
+      --card: #ffffff;        /* tarjetas */
+      --ink: #1f2937;         /* texto principal */
+      --muted: #6b7280;       /* texto secundario */
+      --accent: #2563eb;      /* acento sobrio */
+      --accent-2:#dbeafe;     /* fondo suave acento */
+      --radius: 16px;
+      --shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+
+    *{ box-sizing:border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: var(--bg);
+      color: var(--ink);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden; /* sin scroll de página */
+    }
+
+    /* ===== TÍTULO ===== */
+    header{
+      padding: clamp(10px, 2vh, 16px) clamp(16px, 3vw, 28px);
+      display: grid;
+      place-items: center;
+    }
+    .title{
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: .3px;
+      font-size: clamp(20px, 2.8vw, 32px);
+      color: var(--ink);
+      position: relative;
+      padding-bottom: 6px;
+    }
+    .title::after{
+      content:"";
+      position:absolute;
+      left: 0; bottom: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), transparent 80%);
+      border-radius: 999px;
+      opacity:.35;  /* sutil, no chillón */
+    }
+    .badge{
+      font-size: clamp(12px, 1.4vw, 14px);
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-2);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    /* ===== LAYOUT ===== */
+    .wrap{
+      height: 100%;
+      padding: clamp(10px, 2vh, 18px);
+      display: grid;
+      gap: clamp(12px, 2vw, 20px);
+    }
+
+    /* Desktop: 2 columnas. Mobile/Tablet: 2 filas (video arriba) */
+    @media (min-width: 900px){
+      .wrap{
+        grid-template-columns: 1.3fr .9fr;
+        align-items: stretch;
+      }
+    }
+    @media (max-width: 899.98px){
+      .wrap{
+        grid-template-rows: 56% 44%;
+      }
+    }
+
+    /* ===== VIDEO ===== */
+    .card{
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(10px, 1.8vh, 16px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0; /* permite que el contenido use 1fr sin overflow */
+    }
+    .card h2{
+      margin: 0 0 8px 0;
+      font-size: clamp(14px, 1.6vw, 16px);
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .video-shell{
+      position: relative;
+      border-radius: calc(var(--radius) - 6px);
+      overflow: hidden;
+      height: 100%;
+    }
+    video{
+      width: 100%; height: 100%;
+      object-fit: cover; /* llena el área sin deformar */
+      display: block;
+      background: #e5e7eb;
+    }
+
+    /* ===== RESULTADOS ===== */
+    .results{
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .dominante{
+      display: grid;
+      grid-auto-flow: column;
+      align-items: center;
+      justify-content: start;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-left: 6px solid var(--accent);
+      border-radius: 12px;
+      padding: clamp(10px, 1.6vh, 14px) clamp(12px, 1.6vw, 16px);
+      font-weight: 700;
+      font-size: clamp(14px, 1.8vw, 18px);
+      color: var(--ink);
+    }
+    .dominante .pct{
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .list{
+      overflow: auto;  /* si la pantalla es muy chica, solo esta sección scrollea */
+      border: 1px solid #eef2f7;
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+    }
+    .item{
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #fafbfc;
+    }
+    .label{
+      color: var(--muted);
+      font-weight: 600;
+      font-size: clamp(13px, 1.5vw, 14px);
+    }
+    .bar-wrap{
+      grid-column: 1 / -1;
+      height: 8px;
+      background: #eef2f7;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .bar{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #6aa7ff);
+      opacity: .55;
+      transition: width .5s ease;
+    }
+    .value{
+      font-weight: 700;
+      color: var(--ink);
+      font-size: clamp(13px, 1.5vw, 14px);
+    }
+  </style>
+</head>
+<body>
+  <!-- TÍTULO -->
+  <header>
+    <div class="title">
+      🎭 Detector de Emociones
+      <span class="badge">Tiempo real</span>
+    </div>
+  </header>
+
+  <!-- CONTENIDO -->
+  <main class="wrap">
+    <!-- Tarjeta de cámara -->
+    <section class="card">
+      <h2>Cámara</h2>
+      <div class="video-shell">
+        <video id="video" autoplay muted playsinline></video>
+      </div>
+    </section>
+
+    <!-- Tarjeta de resultados -->
+    <section class="card results">
+      <h2>Resultados</h2>
+
+      <div class="dominante" id="dominante">
+        <span>Emoción dominante:</span>
+        <span id="dominante-label">—</span>
+        <span class="pct" id="dominante-pct"></span>
+      </div>
+
+      <div class="list" id="emociones-list">
+        <!-- items generados por JS -->
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const video = document.getElementById("video");
+    const list = document.getElementById("emociones-list");
+    const domLabel = document.getElementById("dominante-label");
+    const domPct = document.getElementById("dominante-pct");
+
+    const traducciones = {
+      angry: "Enojo",
+      disgust: "Asco",
+      fear: "Miedo",
+      happy: "Felicidad",
+      sad: "Tristeza",
+      surprise: "Sorpresa",
+      neutral: "Neutralidad"
+    };
+
+    // Inicializa cámara
+    (async () => {
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      }catch(e){
+        console.error("Error al acceder a la cámara:", e);
+      }
+    })();
+
+    // Render de lista con barras
+    function renderEmociones(emociones){
+      list.innerHTML = "";
+      const entries = Object.entries(emociones)
+        .sort((a,b)=> b[1]-a[1]); // ordena de mayor a menor
+
+      entries.forEach(([key, val])=>{
+        const pct = Math.max(0, Math.min(100, Number(val))); // saneo
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerHTML = `
+          <div class="label">${traducciones[key] || key}</div>
+          <div class="value">${pct.toFixed(1)}%</div>
+          <div class="bar-wrap"><div class="bar" style="width:${pct}%;"></div></div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    // Captura y envío de frames
+    async function analizarFrame(){
+      if (!video.videoWidth || !video.videoHeight){
+        // espera a que el video esté listo
+        return setTimeout(analizarFrame, 400);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.8));
+      const fd = new FormData();
+      fd.append("file", blob, "frame.jpg");
+
+      try{
+        const r = await fetch("http://127.0.0.1:8000/analizar/", { method:"POST", body: fd });
+        const data = await r.json();
+
+        if (data && data.status === "success" && data.emociones){
+          // emociones
+          renderEmociones(data.emociones);
+          // dominante
+          const emo = data.emocion_dominante || data.dominante; // compatibilidad
+          const pct =
+            emo && data.emociones && typeof data.emociones[emo] !== "undefined"
+              ? Number(data.emociones[emo])
+              : null;
+
+          domLabel.textContent = (traducciones[emo] || (emo ?? "—"));
+          domPct.textContent = pct !== null ? `(${pct.toFixed(1)}%)` : "";
+        }else{
+          domLabel.textContent = "Sin rostro";
+          domPct.textContent = "";
+          list.innerHTML = "";
+        }
+      }catch(e){
+        console.error("Error en análisis:", e);
+      }finally{
+        setTimeout(analizarFrame, 1500); // ritmo de consulta
+      }
+    }
+
+    // Inicia loop cuando el video ya reproduce
+    video.addEventListener("playing", () => analizarFrame(), { once:true });
+  </script>
+</body>
+</html>
