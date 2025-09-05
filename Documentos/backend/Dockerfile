@@ -1,33 +1,32 @@
 # Imagen base oficial de Python
 FROM python:3.10-slim
 
-# Configuraciones básicas
-ENV PYTHONDONTWRITEBYTECODE=1
+# Evitar buffering de logs en Render
 ENV PYTHONUNBUFFERED=1
 
-# Crear directorio de trabajo
+# Crear directorio de la app
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias para TensorFlow y otros paquetes
+# Instalar dependencias del sistema necesarias para deepface, opencv y numpy
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
-    curl \
+    cmake \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos de dependencias primero
+# Copiar archivos de dependencias primero para cache
 COPY requirements.txt .
 
-# Instalar dependencias de Python
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Actualizar pip e instalar dependencias
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto del código
+# Copiar el resto del código de la app
 COPY . .
 
-# Exponer el puerto
+# Exponer puerto que Render usará
 EXPOSE 8000
 
-# Comando de inicio
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+# Comando para ejecutar con Gunicorn + Uvicorn (FastAPI)
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "main:app"]
