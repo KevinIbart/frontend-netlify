@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Detector de Emociones</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/png" href="logo.png">
+
   <style>
     :root{
       --bg: #f2f4f7;         /* fondo neutro */
@@ -27,7 +31,9 @@
       color: var(--ink);
       display: grid;
       grid-template-rows: auto 1fr;
-      overflow: hidden; /* sin scroll de página */
+      /* ✅ permitir scroll en móviles */
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     /* ===== TÍTULO ===== */
@@ -67,6 +73,11 @@
       border-radius: 999px;
     }
 
+    .logo {
+      height: 40px;   /* tamaño del logo */
+      width: auto;
+    }
+
     /* ===== LAYOUT ===== */
     .wrap{
       height: 100%;
@@ -75,16 +86,28 @@
       gap: clamp(12px, 2vw, 20px);
     }
 
-    /* Desktop: 2 columnas. Mobile/Tablet: 2 filas (video arriba) */
+    /* ✅ móvil muy pequeño: una sola columna */
+    @media (max-width: 599.98px){
+      .wrap{
+        grid-template-rows: auto auto;
+      }
+      .card{
+        min-height: auto; /* no forzar altura */
+      }
+    }
+
+    /* ✅ tablet */
+    @media (min-width: 600px) and (max-width: 899.98px){
+      .wrap{
+        grid-template-rows: 56% 44%;
+      }
+    }
+
+    /* ✅ desktop */
     @media (min-width: 900px){
       .wrap{
         grid-template-columns: 1.3fr .9fr;
         align-items: stretch;
-      }
-    }
-    @media (max-width: 899.98px){
-      .wrap{
-        grid-template-rows: 56% 44%;
       }
     }
 
@@ -96,7 +119,7 @@
       padding: clamp(10px, 1.8vh, 16px);
       display: grid;
       grid-template-rows: auto 1fr;
-      min-height: 0; /* permite que el contenido use 1fr sin overflow */
+      min-height: 0;
     }
     .card h2{
       margin: 0 0 8px 0;
@@ -114,7 +137,7 @@
     }
     video{
       width: 100%; height: 100%;
-      object-fit: cover; /* llena el área sin deformar */
+      object-fit: cover;
       display: block;
       background: #e5e7eb;
     }
@@ -148,7 +171,7 @@
     }
 
     .list{
-      overflow: auto;  /* si la pantalla es muy chica, solo esta sección scrollea */
+      overflow: auto;
       border: 1px solid #eef2f7;
       border-radius: 12px;
       padding: 10px;
@@ -194,7 +217,8 @@
   <!-- TÍTULO -->
   <header>
     <div class="title">
-      🎭 Detector de Emociones
+      <img src="logo.png" alt="Logo" class="logo">
+      EMOSCAN
       <span class="badge">Tiempo real</span>
     </div>
   </header>
@@ -219,9 +243,7 @@
         <span class="pct" id="dominante-pct"></span>
       </div>
 
-      <div class="list" id="emociones-list">
-        <!-- items generados por JS -->
-      </div>
+      <div class="list" id="emociones-list"></div>
     </section>
   </main>
 
@@ -255,10 +277,10 @@
     function renderEmociones(emociones){
       list.innerHTML = "";
       const entries = Object.entries(emociones)
-        .sort((a,b)=> b[1]-a[1]); // ordena de mayor a menor
+        .sort((a,b)=> b[1]-a[1]);
 
       entries.forEach(([key, val])=>{
-        const pct = Math.max(0, Math.min(100, Number(val))); // saneo
+        const pct = Math.max(0, Math.min(100, Number(val)));
         const item = document.createElement("div");
         item.className = "item";
         item.innerHTML = `
@@ -273,7 +295,6 @@
     // Captura y envío de frames
     async function analizarFrame(){
       if (!video.videoWidth || !video.videoHeight){
-        // espera a que el video esté listo
         return setTimeout(analizarFrame, 400);
       }
 
@@ -292,10 +313,8 @@
         const data = await r.json();
 
         if (data && data.status === "success" && data.emociones){
-          // emociones
           renderEmociones(data.emociones);
-          // dominante
-          const emo = data.emocion_dominante || data.dominante; // compatibilidad
+          const emo = data.emocion_dominante || data.dominante;
           const pct =
             emo && data.emociones && typeof data.emociones[emo] !== "undefined"
               ? Number(data.emociones[emo])
@@ -311,11 +330,10 @@
       }catch(e){
         console.error("Error en análisis:", e);
       }finally{
-        setTimeout(analizarFrame, 1500); // ritmo de consulta
+        setTimeout(analizarFrame, 1500);
       }
     }
 
-    // Inicia loop cuando el video ya reproduce
     video.addEventListener("playing", () => analizarFrame(), { once:true });
   </script>
 </body>
