@@ -17,17 +17,17 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos de dependencias primero (para aprovechar cache)
+# Copiar archivos de dependencias primero
 COPY requirements.txt .
 
 # Instalar dependencias de Python
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copiar el resto del código de la aplicación
+# Copiar el resto del código
 COPY . .
 
 # Exponer el puerto
 EXPOSE 8000
 
-# Comando para iniciar la app (Gunicorn con UvicornWorker)
+# Comando de inicio
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
